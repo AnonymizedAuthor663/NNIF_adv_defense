@@ -1,2 +1,2 @@
 # NNIF_adv_defense
-NNIF adversarial detection
+Detection of adversarial examples using influence functions and nearest neighbors
