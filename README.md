@@ -17,7 +17,7 @@ To train a model on a dataset, run:
 ```sh
 $ python NNIF_adv_defense/train.py --dataset cifar10
 ```
-You can choose between cifar-10/100 or SVHN. Also, you can also contol the number of epoches (--nb_epochs) and the batch size (--batch_size).
+You can choose between CIFAR-10/100 or SVHN. Also, you can also contol the number of epoches (--nb_epochs) and the batch size (--batch_size).
 This script also seperates the dataset into train/val/test of 49k/1k/10k. For SVHN we randomely select 50k samples from its training set and 10k samples from its test set.
 
 ### Evaluating and Attacking
