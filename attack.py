@@ -176,8 +176,6 @@ nb_classes = y_test.shape[1]
 x     = tf.placeholder(tf.float32, shape=(None, img_rows, img_cols, nchannels), name='x')
 y     = tf.placeholder(tf.float32, shape=(None, nb_classes), name='y')
 
-eval_params = {'batch_size': FLAGS.batch_size}
-
 model = DarkonReplica(scope=ARCH_NAME[FLAGS.dataset], nb_classes=feeder.num_classes, n=5, input_shape=[32, 32, 3])
 preds      = model.get_predicted_class(x)
 logits     = model.get_logits(x)
