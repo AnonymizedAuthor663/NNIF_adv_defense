@@ -2,6 +2,7 @@
 Detection of adversarial examples using influence functions and nearest neighbors
 
 ### Installation
+This repo supports python 2.7
 
 Install the dependencies:
 
