@@ -50,7 +50,7 @@ flags.DEFINE_string('dataset', 'cifar10', 'datasset: cifar10/100 or svhn')
 flags.DEFINE_string('set', 'val', 'val or test set to evaluate')
 flags.DEFINE_string('attack', 'deepfool', 'adversarial attack: deepfool, jsma, cw, cw_nnif')
 flags.DEFINE_string('checkpoint_dir', '', 'Checkpoint dir, the path to the saved model architecture and weights')
-
+flags.DEFINE_integer('num_threads', 1, 'number of threads')
 
 # TODO: remove
 flags.DEFINE_string('mode', 'null', 'to bypass pycharm bug')
