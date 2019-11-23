@@ -30,6 +30,7 @@ The available attacks are: fgsm, jsma, deepfool, and cw
 
 ### Evaluating and Attacking - faster method
 -----STAGE A-----
+
 The code above runs very slowly and takes weeks to run. To make the code run in a realistic time, run:
 ```sh
 $ python NNIF_adv_defense/calc_hvp.py --dataset cifar10 --set val --attack cw
@@ -37,6 +38,7 @@ $ python NNIF_adv_defense/calc_hvp.py --dataset cifar10 --set val --attack cw
 This will only calculate the Hessian inverse approximation (see https://arxiv.org/abs/1703.04730) and not the entire I_up_loss. It is highly recommended to use GPUs for this run.
 
 -----STAGE B-----
+
 After STAGE A completes, run this script:
 ```sh
 $ CUDA_VISIBLE_DEVICES='' python NNIF_adv_defense/calc_scores.py --dataset cifar10 --set val --attack cw --num_threads 4
