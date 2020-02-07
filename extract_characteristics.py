@@ -24,18 +24,20 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.neighbors import KNeighborsClassifier
 from cleverhans.evaluation import batch_eval
 from cleverhans.utils import set_log_level
+import time
 
 # TODO(support noise in the future). In my/our settings the characteristics are calculated only for real/adv images.
 STDEVS = {
-    'val' : {'cifar10' : {'deepfool': 0.00861, 'cw': 0.003081, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001},
-             'cifar100': {'deepfool': 0.001, 'cw': 0.001, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001},
-             'svhn'    : {'deepfool': 0.001, 'cw': 0.001, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001}
+    'val' : {'cifar10' : {'deepfool': 0.00861, 'cw': 0.003081, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001, 'pgd': 0.001, 'ead': 0.001},
+             'cifar100': {'deepfool': 0.001, 'cw': 0.001, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001, 'pgd': 0.001, 'ead': 0.001},
+             'svhn'    : {'deepfool': 0.001, 'cw': 0.001, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001, 'pgd': 0.001, 'ead': 0.001}
             },
-    'test': {'cifar10' : {'deepfool': 0.00796, 'cw': 0.003057, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001},
-             'cifar100': {'deepfool': 0.001, 'cw': 0.001, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001},
-             'svhn'    : {'deepfool': 0.001, 'cw': 0.001, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001}
+    'test': {'cifar10' : {'deepfool': 0.00796, 'cw': 0.003057, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001, 'pgd': 0.001, 'ead': 0.001},
+             'cifar100': {'deepfool': 0.001, 'cw': 0.001, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001, 'pgd': 0.001, 'ead': 0.001},
+             'svhn'    : {'deepfool': 0.001, 'cw': 0.001, 'cw_nnif': 0.003081, 'jsma': 0.001, 'fgsm': 0.001, 'pgd': 0.001, 'ead': 0.001}
              }
 }
+
 
 num_of_spatial_activations = {
     'layer0': 32 * 32, 'layer1': 32 * 32, 'layer2': 32 * 32, 'layer3': 32 * 32, 'layer4': 32 * 32, 'layer5': 32 * 32,
@@ -692,14 +694,14 @@ def get_calibration(x_cal_features, y_cal, k):
     knn_pred_cnt = np.asarray(knn_predict_prob * k, dtype=np.int32)
 
     # how many wrong predictions do we have for the true label?
-    calbiration_vec = np.zeros(x_cal_features.shape[0])
+    calibration_vec = np.zeros(x_cal_features.shape[0])
     for i in range(x_cal_features.shape[0]):
         label = y_cal[i]
-        calbiration_vec[i] = k - knn_pred_cnt[i, label]
+        calibration_vec[i] = k - knn_pred_cnt[i, label]
 
-    return calbiration_vec
+    return calibration_vec
 
-def get_dknn_nonconformity(features, calbiration_vec, k):
+def get_dknn_nonconformity(features, calibration_vec, k):
     knn = KNeighborsClassifier(n_neighbors=k, p=2, n_jobs=20)
     knn.fit(x_train_features, y_train_sparse)
 
@@ -713,8 +715,8 @@ def get_dknn_nonconformity(features, calbiration_vec, k):
     empirical_p = np.zeros_like(nonconformity, dtype=np.float32)
     for i in range(len(nonconformity)):  # for every sample
         for j in range(feeder.num_classes):  # for every class
-            num_of_greater_calib_values = np.sum(calbiration_vec >= nonconformity[i, j])
-            empirical_p[i, j] = num_of_greater_calib_values / len(calbiration_vec)
+            num_of_greater_calib_values = np.sum(calibration_vec >= nonconformity[i, j])
+            empirical_p[i, j] = num_of_greater_calib_values / len(calibration_vec)
 
     return empirical_p
 
@@ -771,6 +773,9 @@ def append_suffix(f):
     f = f + '.npy'
     return f
 
+
+start = time.time()
+
 if FLAGS.characteristics == 'lid':
 
     if FLAGS.k_nearest == -1:
@@ -789,6 +794,8 @@ if FLAGS.characteristics == 'lid':
         file_name = os.path.join(characteristics_dir, file_name)
         data = np.concatenate((characteristics, label), axis=1)
         np.save(file_name, data)
+        end_val = time.time()
+        print('total feature extraction time for val: {} sec'.format(end_val - start))
 
         # for test set
         characteristics, labels = get_lid(X_test, X_test_noisy, X_test_adv, k, 100)
@@ -797,6 +804,8 @@ if FLAGS.characteristics == 'lid':
         file_name = os.path.join(characteristics_dir, file_name)
         data = np.concatenate((characteristics, labels), axis=1)
         np.save(file_name, data)
+        end_test = time.time()
+        print('total feature extraction time for test: {} sec'.format(end_test - end_val))
 
 if FLAGS.characteristics == 'nnif':
     # assert FLAGS.only_last is True
@@ -832,6 +841,8 @@ if FLAGS.characteristics == 'nnif':
         file_name = os.path.join(characteristics_dir, file_name)
         data = np.concatenate((characteristics, labels), axis=1)
         np.save(file_name, data)
+        end_val = time.time()
+        print('total feature extraction time for val: {} sec'.format(end_val - start))
 
         # test
         all_normal_ranks, all_normal_dists = calc_all_ranks_and_dists(X_test, 'test', knn_small_trainset)
@@ -850,10 +861,12 @@ if FLAGS.characteristics == 'nnif':
         file_name = os.path.join(characteristics_dir, file_name)
         data = np.concatenate((characteristics, labels), axis=1)
         np.save(file_name, data)
+        end_test = time.time()
+        print('total feature extraction time for test: {} sec'.format(end_test - end_val))
 
 if FLAGS.characteristics == 'mahalanobis':
 
-    print('get sample mean and covariance of the training set...')
+    print('get sample mean and covariance of the training set...')  # included in val (non-deployment) computation time
     sample_mean, precision = sample_estimator(feeder.num_classes, X_train, y_train_sparse)
     print('Done calculating: sample_mean, precision.')
 
@@ -873,6 +886,8 @@ if FLAGS.characteristics == 'mahalanobis':
         file_name = os.path.join(characteristics_dir, file_name)
         data = np.concatenate((characteristics, label), axis=1)
         np.save(file_name, data)
+        end_val = time.time()
+        print('total feature extraction time for val: {} sec'.format(end_val - start))
 
         # for test set
         characteristics, labels = get_mahalanobis(X_test, X_test_noisy, X_test_adv, magnitude, sample_mean, precision, 'test')
@@ -881,6 +896,8 @@ if FLAGS.characteristics == 'mahalanobis':
         file_name = os.path.join(characteristics_dir, file_name)
         data = np.concatenate((characteristics, labels), axis=1)
         np.save(file_name, data)
+        end_test = time.time()
+        print('total feature extraction time for test: {} sec'.format(end_test - end_val))
 
 if FLAGS.characteristics == 'dknn':
     assert FLAGS.only_last is True
@@ -905,7 +922,7 @@ if FLAGS.characteristics == 'dknn':
         y_cal          = y_val_sparse[:calibration_size]
 
         print("Calculating the calibration matrix...")
-        calbiration_vec = get_calibration(x_cal_features, y_cal, k)
+        calibration_vec = get_calibration(x_cal_features, y_cal, k)  # included in val (non-deployment) computation time
         print("Done calculating the calibration matrix.")
 
         X_val2              = X_val[calibration_size:]
@@ -917,8 +934,8 @@ if FLAGS.characteristics == 'dknn':
         x_val2_features_adv = x_val_features_adv[calibration_size:]
 
         # set training set
-        val_normal_characteristics = get_dknn_nonconformity(x_val2_features    , calbiration_vec, k)
-        val_adv_characteristics    = get_dknn_nonconformity(x_val2_features_adv, calbiration_vec, k)
+        val_normal_characteristics = get_dknn_nonconformity(x_val2_features, calibration_vec, k)
+        val_adv_characteristics    = get_dknn_nonconformity(x_val2_features_adv, calibration_vec, k)
 
         dknn_neg = val_normal_characteristics
         dknn_pos = val_adv_characteristics
@@ -930,10 +947,12 @@ if FLAGS.characteristics == 'dknn':
         file_name = os.path.join(characteristics_dir, file_name)
         data = np.concatenate((characteristics, labels), axis=1)
         np.save(file_name, data)
+        end_val = time.time()
+        print('total feature extraction time for val: {} sec'.format(end_val - start))
 
         # set testing set
-        test_normal_characteristics = get_dknn_nonconformity(x_test_features    , calbiration_vec, k)
-        test_adv_characteristics    = get_dknn_nonconformity(x_test_features_adv, calbiration_vec, k)
+        test_normal_characteristics = get_dknn_nonconformity(x_test_features, calibration_vec, k)
+        test_adv_characteristics    = get_dknn_nonconformity(x_test_features_adv, calibration_vec, k)
 
         dknn_neg = test_normal_characteristics
         dknn_pos = test_adv_characteristics
@@ -945,3 +964,5 @@ if FLAGS.characteristics == 'dknn':
         file_name = os.path.join(characteristics_dir, file_name)
         data = np.concatenate((characteristics, labels), axis=1)
         np.save(file_name, data)
+        end_test = time.time()
+        print('total feature extraction time for test: {} sec'.format(end_test - end_val))
