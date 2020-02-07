@@ -31,7 +31,7 @@ The available attacks are: fgsm, jsma, deepfool, and cw
 ### Evaluating and Attacking - faster method
 -----STAGE A-----
 
-The code above runs very slowly and takes weeks to run. To make the code run in a realistic time, run:
+The code above runs very slowly and takes days to run for a single dataset. To make the code run in a realistic time, run:
 ```sh
 $ python NNIF_adv_defense/calc_hvp.py --dataset cifar10 --set val --attack cw
 ```
